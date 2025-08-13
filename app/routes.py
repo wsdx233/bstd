@@ -50,8 +50,12 @@ def download_proxy_mod(file_id, filename):
         req = requests.get(download_url, stream=True)
         req.raise_for_status()
         
+        response_headers = {
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Cross-Origin-Resource-Policy": "cross-origin"
+        }
         return Response(req.iter_content(chunk_size=8192),
                         content_type=req.headers['Content-Type'],
-                        headers={"Content-Disposition": f"attachment; filename={filename}"})
+                        headers=response_headers)
     except requests.exceptions.RequestException as e:
         return f"Error downloading file: {e}", 500
