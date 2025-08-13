@@ -146,7 +146,7 @@
         }
     </style>
 </head>
-<body>
+<body data-proxy-images="{{ proxy_images|tojson }}" data-proxy-videos="{{ proxy_videos|tojson }}">
 
     <div class="container">
         <header>
@@ -162,6 +162,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const proxyImages = document.body.dataset.proxyImages === 'true';
+            const proxyVideos = document.body.dataset.proxyVideos === 'true';
             const modListContainer = document.getElementById('mod-list-container');
             const searchBox = document.getElementById('search-box');
             let allMods = [];
@@ -209,11 +211,20 @@
                     let attachmentsHTML = '';
                     const otherAttachments = mod.attachments.filter(att => !att.fileName.endsWith('.py'));
                     otherAttachments.forEach(att => {
-                        const url = `/download/proxy/${encodeURIComponent(att.fileId)}/${encodeURIComponent(att.fileName)}`;
                         const fName = att.fileName.toLowerCase();
-                        if (fName.endsWith('.jpg') || fName.endsWith('.jpeg') || fName.endsWith('.png') || fName.endsWith('.gif')) {
+                        const isImage = fName.endsWith('.jpg') || fName.endsWith('.jpeg') || fName.endsWith('.png') || fName.endsWith('.gif');
+                        const isVideo = fName.endsWith('.mp4') || fName.endsWith('.webm');
+                        
+                        let url;
+                        if ((isImage && proxyImages) || (isVideo && proxyVideos)) {
+                            url = `/download/proxy/${encodeURIComponent(att.fileId)}/${encodeURIComponent(att.fileName)}`;
+                        } else {
+                            url = `https://mods.ballistica.workers.dev/getFile?fileId=${att.fileId}`;
+                        }
+
+                        if (isImage) {
                             attachmentsHTML += `<div class="attachment"><a href="${url}" target="_blank"><img src="${url}" alt="${att.fileName}"></a></div>`;
-                        } else if (fName.endsWith('.mp4') || fName.endsWith('.webm')) {
+                        } else if (isVideo) {
                             attachmentsHTML += `<div class="attachment"><video controls><source src="${url}" type="video/mp4">Your browser does not support the video tag.</video></div>`;
                         } else {
                             downloadButtonsHTML += `<a href="${url}" class="download-btn btn-other" download>${att.fileName}</a>`;

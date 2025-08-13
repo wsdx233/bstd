@@ -7,7 +7,9 @@ from config import MODS_FILE, DOWNLOAD_DIR, PROXY_IMAGES, PROXY_VIDEOS
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html',
+                           proxy_images=PROXY_IMAGES,
+                           proxy_videos=PROXY_VIDEOS)
 
 @app.route('/api/mods')
 def get_mods():
