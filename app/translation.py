@@ -24,7 +24,7 @@ def translate_simple_text(text):
 
 def get_translations_from_openai(content):
     """从 OpenAI 获取键值对格式的翻译。"""
-    prompt = f"""请帮我翻译此Python MOD中的文本内容，写成键值对形式，使用活泼生动的语言，只需要输出键值对内容，不要输出其它任意内容，谢谢
+    prompt = f"""请帮我翻译此Python MOD中的文本内容，写成键值对形式，使用活泼生动的语言，只需要输出键值对内容，不要输出其它任意多余内容（包括格式等都不需要，因为这个文件最终需要用机器解析），谢谢
 请翻译与 >>>UI界面，提示文本，功能文本<<< 相关的所有字符串字面量
 但是请注意，如果某个文本内容与代码逻辑相关联（比如作为字典key，用于if判断），请不要翻译此文本
 翻译格式为（注意两边都不需要加双引号）:
@@ -49,8 +49,13 @@ no MORE for you bud,\\nyou are not the host.:::伙计，没法“更多”了，
                 {"role": "user", "content": prompt}
             ]
         )
-        print("翻译内容：",response.choices[0].message.content.strip())
-        return response.choices[0].message.content.strip()
+        trans = response.choices[0].message.content.strip()
+        # fix zhipu ai probelm
+        trans = trans.replace("<|begin_of_box|>","")
+        trans = trans.replace("<|end_of_box|>","")
+        
+        print("翻译内容：",trans)
+        return trans
     except Exception as e:
         print(f"从OpenAI获取翻译键值对时出错: {e}", file=sys.stderr)
         return None
