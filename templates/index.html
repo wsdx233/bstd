@@ -301,10 +301,6 @@
                     modalImg.src = target.src;
                 }
 
-                // Handle modal close
-                if (target.classList.contains('close-modal') || target.id === 'imageModal') {
-                    document.getElementById('imageModal').style.display = "none";
-                }
 
                 // 处理描述展开/折叠
                 const descriptionElement = target.closest('.mod-description');
@@ -314,6 +310,21 @@
                     if (attachments && attachments.classList.contains('attachments-container')) {
                         attachments.classList.toggle('expanded');
                     }
+                }
+            });
+
+            // Modal handling
+            const modal = document.getElementById('imageModal');
+            const closeModalBtn = document.querySelector('.close-modal');
+
+            function hideModal() {
+                modal.style.display = 'none';
+            }
+
+            closeModalBtn.addEventListener('click', hideModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target.id === 'imageModal') {
+                    hideModal();
                 }
             });
 
