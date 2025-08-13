@@ -1,7 +1,8 @@
 import sys
 import os
+import time
 from openai import OpenAI
-from config import OPENAI_API_KEY, OPENAI_BASE_URL
+from config import OPENAI_API_KEY, OPENAI_BASE_URL, MODEL_NAME
 
 client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
 
@@ -11,7 +12,7 @@ def translate_simple_text(text):
         return ""
     try:
         response = client.chat.completions.create(
-            model="glm-4.5v",
+            model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": "You are a translator. Translate the following English text to Chinese."},
                 {"role": "user", "content": text}
@@ -23,11 +24,11 @@ def translate_simple_text(text):
         return text # 翻译失败时返回原文
 
 def get_translations_from_openai(content):
-    """从 OpenAI 获取键值对格式的翻译。"""
-    prompt = f"""请帮我翻译此Python MOD中的文本内容，写成键值对形式，使用活泼生动的语言，只需要输出键值对内容，不要输出其它任意多余内容（包括格式等都不需要，因为这个文件最终需要用机器解析），谢谢
+    """从 OpenAI 获取键值对格式的翻译，并带有重试逻辑。"""
+    prompt = f"""请帮我翻译此Python MOD中的文本内容，写成键值对形式，使用活泼生动的语言，只需要输出键值对内容，不要输出其它任意多余内容，谢谢
 请翻译与 >>>UI界面，提示文本，功能文本<<< 相关的所有字符串字面量
 但是请注意，如果某个文本内容与代码逻辑相关联（比如作为字典key，用于if判断），请不要翻译此文本
-翻译格式为（注意两边都不需要加双引号）:
+翻译格式为（注意!!!!两边都不能添加双引号!!!否则会导致翻译错误!!!）:
 原字符串字面量:::中文翻译内容
 示例：
 
@@ -42,23 +43,39 @@ no MORE for you bud,\\nyou are not the host.:::伙计，没法“更多”了，
 --- MOD CONTENT ---
 {content}
 """
-    try:
-        response = client.chat.completions.create(
-            model="glm-4.5v",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        trans = response.choices[0].message.content.strip()
-        # fix zhipu ai probelm
-        trans = trans.replace("<|begin_of_box|>","")
-        trans = trans.replace("<|end_of_box|>","")
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            trans_text = response.choices[0].message.content.strip()
+            # fix zhipu ai probelm
+            trans_text = trans_text.replace("<|begin_of_box|>","")
+            trans_text = trans_text.replace("<|end_of_box|>","")
+            
+            print(f"第 {attempt + 1} 次尝试翻译内容：", trans_text)
+
+            translations = parse_translations(trans_text)
+            llm_lines = [line for line in trans_text.splitlines() if ':::' in line]
+            
+            if translations and len(translations) >= len(llm_lines) / 2:
+                print("翻译成功，键值对数量符合要求。")
+                return trans_text
+
+            print(f"第 {attempt + 1} 次尝试失败：解析后的键值对数量 ({len(translations)}) 少于预期的一半 ({len(llm_lines) / 2}) 或为0。")
+
+        except Exception as e:
+            print(f"第 {attempt + 1} 次尝试从OpenAI获取翻译键值对时出错: {e}", file=sys.stderr)
         
-        print("翻译内容：",trans)
-        return trans
-    except Exception as e:
-        print(f"从OpenAI获取翻译键值对时出错: {e}", file=sys.stderr)
-        return None
+        if attempt < max_retries - 1:
+            time.sleep(2) # 等待2秒后重试
+
+    print("所有重试均失败，无法获取有效的翻译。", file=sys.stderr)
+    return None
 
 def parse_translations(translation_text):
     """
@@ -120,7 +137,7 @@ def get_title_from_openai(filename, description):
 """
     try:
         response = client.chat.completions.create(
-            model="glm-4.5v",
+            model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": "你是一个创意命名大师，擅长为软件模块和游戏Mod命名。"},
                 {"role": "user", "content": prompt}

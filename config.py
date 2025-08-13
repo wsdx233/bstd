@@ -9,7 +9,8 @@ MODS_API_URL = "https://mods.ballistica.workers.dev/mods"
 MODS_FILE = "mods.json"
 DOWNLOAD_DIR = "downloads" # 用于存放下载的mod文件
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://open.bigmodel.cn/api/paas/v4") # 允许自定义base_url
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL") # 允许自定义base_url
+MODEL_NAME = os.getenv("MODEL_NAME")
 
 # 确保在 .env 文件中设置了 OPENAI_API_KEY
 if not OPENAI_API_KEY:
