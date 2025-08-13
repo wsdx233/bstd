@@ -46,7 +46,7 @@ def process_and_translate_mods():
                     continue
                 
                 if mod_id in mods_by_id:
-                    print(f"Mod {mod_id} 已存在，跳过。")
+                    print(f"Mod {mod_id} 已存在于 JSON 中，跳过。")
                     continue
 
                 py_attachments = [att for att in mod_data.get('attachments', []) if att['fileName'].endswith('.py')]
@@ -55,55 +55,58 @@ def process_and_translate_mods():
                 translated_description = ""
                 original_py_filename = None
                 translated_py_filename = None
+                description = mod_data.get('description', '')
 
                 if py_attachments:
                     attachment = py_attachments[0]
                     original_py_filename = attachment['fileName']
-                    
-                    # 1. 下载原始 mod 文件
-                    download_url = f"https://mods.ballistica.workers.dev/getFile?fileId={attachment['fileId']}"
+                    translated_py_filename = f"trans_{original_py_filename}"
+                    translated_filepath = os.path.join(DOWNLOAD_DIR, translated_py_filename)
                     local_filepath = os.path.join(DOWNLOAD_DIR, original_py_filename)
-                    
-                    try:
-                        mod_content_response = requests.get(download_url)
-                        mod_content_response.raise_for_status()
-                        original_content = mod_content_response.content.decode('utf-8')
-                        with open(local_filepath, 'w', encoding='utf-8') as f:
-                            f.write(original_content)
-                    except requests.exceptions.RequestException as e:
-                        print(f"下载 mod 文件失败 {original_py_filename}: {e}")
-                        continue
-                    
-                    # 2. 翻译标题和描述
-                    # 2. 翻译描述和生成智能标题
-                    description = mod_data.get('description', '')
+
+                    # 总是需要翻译描述和生成标题
                     translated_description = translate_simple_text(description)
                     print(f"正在为 {original_py_filename} 生成智能标题...")
                     translated_title = get_title_from_openai(original_py_filename, description)
 
-                    # 3. 使用 OpenAI 翻译 mod 内容
-                    print(f"正在翻译 mod 内容: {original_py_filename}")
-                    translation_kv_text = get_translations_from_openai(original_content)
-                    
-                    translated_content = original_content
-                    translated_py_filename = f"trans_{original_py_filename}"
-                    translated_filepath = os.path.join(DOWNLOAD_DIR, translated_py_filename)
-
-                    if translation_kv_text:
-                        translations = parse_translations(translation_kv_text)
-                        if translations:
-                            translated_content = translate_module_content(original_content, translations)
-                            print(f"Mod 内容翻译成功: {original_py_filename}")
+                    # 检查翻译文件是否存在，以决定是否需要下载和翻译
+                    if not os.path.exists(translated_filepath):
+                        print(f"翻译文件 {translated_py_filename} 不存在，开始下载和翻译。")
+                        # 1. 下载
+                        download_url = f"https://mods.ballistica.workers.dev/getFile?fileId={attachment['fileId']}"
+                        try:
+                            mod_content_response = requests.get(download_url)
+                            mod_content_response.raise_for_status()
+                            original_content = mod_content_response.content.decode('utf-8')
+                            with open(local_filepath, 'w', encoding='utf-8') as f:
+                                f.write(original_content)
+                        except requests.exceptions.RequestException as e:
+                            print(f"下载 mod 文件失败 {original_py_filename}: {e}")
+                            continue
+                        
+                        # 2. 翻译内容
+                        print(f"正在翻译 mod 内容: {original_py_filename}")
+                        translation_kv_text = get_translations_from_openai(original_content)
+                        
+                        translated_content = original_content
+                        if translation_kv_text:
+                            translations = parse_translations(translation_kv_text)
+                            if translations:
+                                translated_content = translate_module_content(original_content, translations)
+                                print(f"Mod 内容翻译成功: {original_py_filename}")
+                            else:
+                                print(f"未能从OpenAI返回中解析出键值对: {original_py_filename}")
                         else:
-                            print(f"未能从OpenAI返回中解析出键值对: {original_py_filename}")
-                    else:
-                        print(f"未能从OpenAI获取翻译: {original_py_filename}")
+                            print(f"未能从OpenAI获取翻译: {original_py_filename}")
 
-                    with open(translated_filepath, 'w', encoding='utf-8') as f:
-                        f.write(translated_content)
+                        with open(translated_filepath, 'w', encoding='utf-8') as f:
+                            f.write(translated_content)
+                    else:
+                        print(f"翻译文件 {translated_py_filename} 已存在，跳过下载和内容翻译。")
+
                 else:
                     # 如果没有 .py 文件，仍然翻译描述
-                    translated_description = translate_simple_text(mod_data.get('description', ''))
+                    translated_description = translate_simple_text(description)
 
 
                 # 4. 准备要保存的 mod 信息

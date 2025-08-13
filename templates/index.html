@@ -57,7 +57,13 @@
             font-size: 1.2em;
             font-weight: bold;
             color: #0056b3;
+            margin: 0 0 5px 0;
+        }
+        .mod-filename {
+            font-size: 0.8em;
+            color: #999;
             margin: 0 0 10px 0;
+            font-family: "Courier New", Courier, monospace;
         }
         .mod-description {
             font-size: 0.95em;
@@ -185,6 +191,7 @@
 
                     const pyFile = mod.attachments.find(att => att.fileName.endsWith('.py'));
                     const title = mod.title_cn || (pyFile ? pyFile.fileName : '无标题');
+                    const filename = pyFile ? pyFile.fileName : '';
                     const description = mod.description_cn || mod.description;
                     const author = mod.uploaderUsername || '未知';
                     const uploadedDate = mod.uploadedOn ? new Date(mod.uploadedOn).toLocaleString() : '未知';
@@ -215,6 +222,7 @@
 
                     modItem.innerHTML = `
                         <h2 class="mod-title">${title}</h2>
+                        <p class="mod-filename">${filename}</p>
                         <p class="mod-description">${description || '没有描述。'}</p>
                         <div class="attachments-container">${attachmentsHTML}</div>
                         <div class="download-buttons">${downloadButtonsHTML}</div>

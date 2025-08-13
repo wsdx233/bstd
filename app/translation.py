@@ -25,6 +25,7 @@ def translate_simple_text(text):
 def get_translations_from_openai(content):
     """从 OpenAI 获取键值对格式的翻译。"""
     prompt = f"""请帮我翻译此MOD中的文本内容，写成键值对形式，使用活泼生动的语言，只需要输出键值对内容，不要输出其它任意内容，谢谢
+请注意，如果某个文本内容与代码逻辑相关联（比如作为字典key，用于if判断），请不要翻译此文本
 示例：
 
 Label(text = "Center", ...)
