@@ -145,6 +145,33 @@
             font-size: 1.5em;
             color: #888;
         }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.9);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+        }
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body data-proxy-images="{{ proxy_images|tojson }}" data-proxy-videos="{{ proxy_videos|tojson }}">
@@ -159,6 +186,12 @@
         <div id="mod-list-container" class="mod-list">
             <div class="loader">正在加载 Mods...</div>
         </div>
+    </div>
+
+    <!-- Modal for image zoom -->
+    <div id="imageModal" class="modal">
+        <span class="close-modal">&times;</span>
+        <img class="modal-content" id="modalImage">
     </div>
 
     <script>
@@ -224,9 +257,9 @@
                         }
 
                         if (isImage) {
-                            attachmentsHTML += `<div class="attachment"><a href="${url}" target="_blank"><img src="${url}" alt="${att.fileName}"></a></div>`;
+                            attachmentsHTML += `<div class="attachment"><img src="${url}" alt="${att.fileName}" class="zoomable-image"></div>`;
                         } else if (isVideo) {
-                            attachmentsHTML += `<div class="attachment"><video controls><source src="${url}" type="video/mp4">Your browser does not support the video tag.</video></div>`;
+                            downloadButtonsHTML += `<a href="${url}" class="download-btn btn-other" target="_blank">观看视频: ${att.fileName}</a>`;
                         } else {
                             downloadButtonsHTML += `<a href="${url}" class="download-btn btn-other" download>${att.fileName}</a>`;
                         }
@@ -259,6 +292,19 @@
             // 使用事件委托来处理所有 mod-item 的点击事件
             modListContainer.addEventListener('click', function(e) {
                 const target = e.target;
+
+                // Handle image zoom
+                if (target.classList.contains('zoomable-image')) {
+                    const modal = document.getElementById('imageModal');
+                    const modalImg = document.getElementById('modalImage');
+                    modal.style.display = "flex";
+                    modalImg.src = target.src;
+                }
+
+                // Handle modal close
+                if (target.classList.contains('close-modal') || target.id === 'imageModal') {
+                    document.getElementById('imageModal').style.display = "none";
+                }
 
                 // 处理描述展开/折叠
                 const descriptionElement = target.closest('.mod-description');
