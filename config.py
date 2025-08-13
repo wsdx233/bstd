@@ -11,6 +11,8 @@ DOWNLOAD_DIR = "downloads" # 用于存放下载的mod文件
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL") # 允许自定义base_url
 MODEL_NAME = os.getenv("MODEL_NAME")
+PROXY_IMAGES = os.getenv("PROXY_IMAGES", 'False').lower() in ('true', '1', 't')
+PROXY_VIDEOS = os.getenv("PROXY_VIDEOS", 'False').lower() in ('true', '1', 't')
 
 # 确保在 .env 文件中设置了 OPENAI_API_KEY
 if not OPENAI_API_KEY:

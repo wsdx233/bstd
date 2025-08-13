@@ -1,9 +1,9 @@
 import os
 import json
 import requests
-from flask import jsonify, render_template, send_from_directory, Response
+from flask import jsonify, render_template, send_from_directory, Response, abort
 from app import app
-from config import MODS_FILE, DOWNLOAD_DIR
+from config import MODS_FILE, DOWNLOAD_DIR, PROXY_IMAGES, PROXY_VIDEOS
 
 @app.route('/')
 def index():
@@ -37,6 +37,12 @@ def download_local_mod(filename):
 @app.route('/download/proxy/<file_id>/<filename>')
 def download_proxy_mod(file_id, filename):
     """反向代理下载文件（图片、视频等）"""
+    is_image = any(filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif'])
+    is_video = any(filename.lower().endswith(ext) for ext in ['.mp4', '.webm', '.mov'])
+
+    if (is_image and not PROXY_IMAGES) or (is_video and not PROXY_VIDEOS):
+        abort(403, description="Proxy for this file type is disabled.")
+
     try:
         download_url = f"https://mods.ballistica.workers.dev/getFile?fileId={file_id}"
         req = requests.get(download_url, stream=True)
