@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BombSquad Mod 下载器</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            color: #4a4a4a;
+        }
+        #search-box {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        .mod-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .mod-item {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        .mod-item:hover {
+            transform: translateY(-3px);
+        }
+        .mod-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #0056b3;
+            margin: 0 0 10px 0;
+        }
+        .mod-description {
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #555;
+            white-space: pre-wrap;
+            max-height: 6.5em; /* 限制高度，大约4-5行 */
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        .mod-description.expanded {
+            max-height: none;
+        }
+        .mod-description::after {
+            content: '... 点击展开';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: #fff;
+            padding-left: 10px;
+            font-weight: bold;
+            color: #0056b3;
+        }
+        .mod-description.expanded::after, .mod-description.no-expand::after {
+            content: '';
+        }
+        .mod-meta {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 15px;
+        }
+        .attachments-container {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 220px; /* 限制附件容器的高度 */
+            overflow: hidden;
+        }
+        .attachments-container.expanded {
+            max-height: none;
+        }
+        .attachment {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .attachment img, .attachment video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .download-buttons {
+            margin-top: 15px;
+        }
+        .download-btn {
+            display: inline-block;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            padding: 10px 18px;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .btn-original { background-color: #007bff; }
+        .btn-original:hover { background-color: #0069d9; }
+        .btn-translated { background-color: #28a745; }
+        .btn-translated:hover { background-color: #218838; }
+        .btn-other { background-color: #6c757d; }
+        .btn-other:hover { background-color: #5a6268; }
+        .loader {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.5em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>BombSquad Mod 下载器</h1>
+            <p>通过关键词搜索并下载 Mod</p>
+            <input type="text" id="search-box" placeholder="输入关键词筛选...">
+        </header>
+
+        <div id="mod-list-container" class="mod-list">
+            <div class="loader">正在加载 Mods...</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modListContainer = document.getElementById('mod-list-container');
+            const searchBox = document.getElementById('search-box');
+            let allMods = [];
+
+            async function fetchMods() {
+                try {
+                    const response = await fetch('/api/mods');
+                    if (!response.ok) throw new Error('网络响应错误');
+                    allMods = await response.json();
+                    allMods.sort((a, b) => new Date(b.uploadedOn) - new Date(a.uploadedOn));
+                    renderMods(allMods);
+                } catch (error) {
+                    modListContainer.innerHTML = `<div class="loader">加载失败: ${error.message}</div>`;
+                }
+            }
+
+            function renderMods(mods) {
+                if (mods.length === 0) {
+                    modListContainer.innerHTML = '<div class="loader">没有找到任何 Mod。</div>';
+                    return;
+                }
+
+                modListContainer.innerHTML = '';
+                mods.forEach(mod => {
+                    const modItem = document.createElement('div');
+                    modItem.className = 'mod-item';
+
+                    const pyFile = mod.attachments.find(att => att.fileName.endsWith('.py'));
+                    const title = mod.title_cn || (pyFile ? pyFile.fileName : '无标题');
+                    const description = mod.description_cn || mod.description;
+                    const author = mod.uploaderUsername || '未知';
+                    const uploadedDate = mod.uploadedOn ? new Date(mod.uploadedOn).toLocaleString() : '未知';
+
+                    let downloadButtonsHTML = '';
+                    if (mod.original_py_file) {
+                        const originalUrl = `/download/local/${encodeURIComponent(mod.original_py_file)}`;
+                        downloadButtonsHTML += `<a href="${originalUrl}" class="download-btn btn-original" download>下载原版 (.py)</a>`;
+                    }
+                    if (mod.translated_py_file) {
+                        const translatedUrl = `/download/local/${encodeURIComponent(mod.translated_py_file)}`;
+                        downloadButtonsHTML += `<a href="${translatedUrl}" class="download-btn btn-translated" download>下载汉化版 (.py)</a>`;
+                    }
+
+                    let attachmentsHTML = '';
+                    const otherAttachments = mod.attachments.filter(att => !att.fileName.endsWith('.py'));
+                    otherAttachments.forEach(att => {
+                        const url = `/download/proxy/${encodeURIComponent(att.fileId)}/${encodeURIComponent(att.fileName)}`;
+                        const fName = att.fileName.toLowerCase();
+                        if (fName.endsWith('.jpg') || fName.endsWith('.jpeg') || fName.endsWith('.png') || fName.endsWith('.gif')) {
+                            attachmentsHTML += `<div class="attachment"><a href="${url}" target="_blank"><img src="${url}" alt="${att.fileName}"></a></div>`;
+                        } else if (fName.endsWith('.mp4') || fName.endsWith('.webm')) {
+                            attachmentsHTML += `<div class="attachment"><video controls><source src="${url}" type="video/mp4">Your browser does not support the video tag.</video></div>`;
+                        } else {
+                            downloadButtonsHTML += `<a href="${url}" class="download-btn btn-other" download>${att.fileName}</a>`;
+                        }
+                    });
+
+                    modItem.innerHTML = `
+                        <h2 class="mod-title">${title}</h2>
+                        <p class="mod-description">${description || '没有描述。'}</p>
+                        <div class="attachments-container">${attachmentsHTML}</div>
+                        <div class="download-buttons">${downloadButtonsHTML}</div>
+                        <p class="mod-meta">
+                            作者: <strong>${author}</strong> | 上传于: ${uploadedDate}
+                        </p>
+                    `;
+                    modListContainer.appendChild(modItem);
+                });
+
+                // 渲染后检查哪些描述需要“展开”功能
+                modListContainer.querySelectorAll('.mod-description').forEach(el => {
+                    if (el.scrollHeight <= el.clientHeight) {
+                        el.classList.add('no-expand');
+                        el.style.cursor = 'default';
+                        // 移除伪元素
+                        el.classList.add('no-after');
+                    }
+                });
+            }
+
+            // 使用事件委托来处理所有 mod-item 的点击事件
+            modListContainer.addEventListener('click', function(e) {
+                const target = e.target;
+
+                // 处理描述展开/折叠
+                if (target.classList.contains('mod-description') && !target.classList.contains('no-expand')) {
+                    target.classList.toggle('expanded');
+                    const attachments = target.nextElementSibling;
+                    if (attachments && attachments.classList.contains('attachments-container')) {
+                        attachments.classList.toggle('expanded');
+                    }
+                }
+            });
+
+            searchBox.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredMods = allMods.filter(mod => {
+                    const pyFile = mod.attachments.find(att => att.fileName.endsWith('.py'));
+                    const title = (mod.title_cn || (pyFile ? pyFile.fileName : '')).toLowerCase();
+                    const description = (mod.description_cn || mod.description || '').toLowerCase();
+                    const author = (mod.uploaderUsername || '').toLowerCase();
+                    
+                    return title.includes(searchTerm) || 
+                           description.includes(searchTerm) ||
+                           author.includes(searchTerm);
+                });
+                renderMods(filteredMods);
+            });
+
+            fetchMods();
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,49 @@
+import os
+import json
+import requests
+from flask import jsonify, render_template, send_from_directory, Response
+from app import app
+from config import MODS_FILE, DOWNLOAD_DIR
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/api/mods')
+def get_mods():
+    try:
+        with open(MODS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return jsonify(data)
+    except FileNotFoundError:
+        return jsonify({"error": "Mods data not found. Please wait for the background task to run."}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/download/local/<filename>')
+def download_local_mod(filename):
+    """从本地服务器下载文件（.py 文件）"""
+    try:
+        return send_from_directory(
+            os.path.abspath(DOWNLOAD_DIR), 
+            filename, 
+            as_attachment=True
+        )
+    except FileNotFoundError:
+        return "File not found.", 404
+    except Exception as e:
+        return f"Error downloading file: {e}", 500
+
+@app.route('/download/proxy/<file_id>/<filename>')
+def download_proxy_mod(file_id, filename):
+    """反向代理下载文件（图片、视频等）"""
+    try:
+        download_url = f"https://mods.ballistica.workers.dev/getFile?fileId={file_id}"
+        req = requests.get(download_url, stream=True)
+        req.raise_for_status()
+        
+        return Response(req.iter_content(chunk_size=8192),
+                        content_type=req.headers['Content-Type'],
+                        headers={"Content-Disposition": f"attachment; filename={filename}"})
+    except requests.exceptions.RequestException as e:
+        return f"Error downloading file: {e}", 500
