@@ -18,7 +18,7 @@ def translate_simple_text(text):
                 {"role": "user", "content": text}
             ]
         )
-        return response.choices[0].message.content.strip()
+        return response.choices[0].message.content.strip().replace('<|begin_of_box|>', '').replace('<|end_of_box|>', '')
     except Exception as e:
         print(f"翻译时出错: {e}")
         return text # 翻译失败时返回原文
@@ -143,7 +143,7 @@ def get_title_from_openai(filename, description):
                 {"role": "user", "content": prompt}
             ]
         )
-        return response.choices[0].message.content.strip().replace('"', '').replace('“', '').replace('”', '')
+        return response.choices[0].message.content.strip().replace('"', '').replace('“', '').replace('”', '').replace('<|begin_of_box|>', '').replace('<|end_of_box|>', '')
     except Exception as e:
         print(f"从OpenAI获取标题时出错: {e}", file=sys.stderr)
         return translate_simple_text(filename.replace('.py', '')) # 出错时回退到简单翻译
